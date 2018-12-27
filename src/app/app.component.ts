@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import * as PIXI from 'pixi.js';
 import { Ship } from './entities/ship';
+import { Logger } from './util/logger';
 
 @Component({
   selector: 'app-root',
@@ -38,7 +39,9 @@ export class AppComponent implements OnInit, OnDestroy {
         "assets/player.png",
         "assets/enemyPlayer.png"
       ])
-      .on("progress", this.loadProgressHandler)
+      .on("progress", (loader: PIXI.Loader, resource: PIXI.LoaderResource) => {
+        Logger.loading("LoadingTextures", loader.progress, resource.name);
+      })
       .load(this.setup);
   }
 
@@ -56,13 +59,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.app.stage.pivot.y = 0;
   }
 
-  private loadProgressHandler(loader: PIXI.Loader, resource: PIXI.LoaderResource): void {
-    console.log("%c[GAME:LoadingTextures] " + "%c" + loader.progress + "% %c" + resource.name, "color:blue;", "color:red;", "color:green;");
-  }
-
   private setup = (): void => {
-    this.spawnPlayer();
-
     let socket = new WebSocket("ws://localhost:8080");
 
     // Receive messages from server
@@ -76,7 +73,7 @@ export class AppComponent implements OnInit, OnDestroy {
           this.removePlayer(message.data);
           break;
         case "identifier":
-          this.identifierMessageHandler(message.data);
+          this.spawnPlayer(message.data);
           break;
       }
     }
@@ -94,11 +91,14 @@ export class AppComponent implements OnInit, OnDestroy {
   private removePlayer(id: number) {
     this.app.stage.removeChild(this.ships.find(ship => ship.id == id));
     this.ships = this.ships.filter(ship => ship.id !== id);
+    Logger.log("RemovedPlayer", "Player with ID #" + id + "disconnected");
   }
 
-  private spawnPlayer() {
+  private spawnPlayer(id: number) {
     this.playerShip = new Ship(PIXI.Loader.shared.resources["assets/player.png"].texture);
+    this.playerShip.id = id;
     this.app.stage.addChild(this.playerShip);
+    Logger.log("SpawnedPlayer", "Spawned player with ID #" + id);
   }
 
   private spawnEnemyPlayer(id: number): Ship {
@@ -106,6 +106,7 @@ export class AppComponent implements OnInit, OnDestroy {
     ship.id = id;
     this.ships.push(ship);
     this.app.stage.addChild(ship);
+    Logger.log("SpawnedEnemyPlayer", "Spawned enemy player with ID #" + id);
     return ship;
   }
 
@@ -113,10 +114,6 @@ export class AppComponent implements OnInit, OnDestroy {
     ship.position.x = update.x;
     ship.position.y = update.y;
     ship.rotation = update.rotation;
-  }
-
-  private identifierMessageHandler(id: number) {
-    this.playerShip.id = id;
   }
 
   private renderSnapshot(snapshot) {
