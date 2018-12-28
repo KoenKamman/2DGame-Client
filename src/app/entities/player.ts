@@ -1,40 +1,60 @@
-import * as PIXI from 'pixi.js';
-import { Projectile } from './projectile';
+import { Container, Sprite, Text } from 'pixi.js';
+import { PlayerUpdate } from '../models/PlayerUpdate';
 
-export class Player {
-    private app: PIXI.Application;
-    public sprite: PIXI.Sprite;
-    public movementSpeed: number;
+export class Player extends Container {
+    private updateBuffer: Array<PlayerUpdate>;
 
-    constructor(app: PIXI.Application) {
-        this.app = app;
-        this.sprite = PIXI.Sprite.from('assets/player.png');
-        this.sprite.anchor.set(0.5);
-        this.movementSpeed = 1;
-        this.app.stage.addChild(this.sprite);
+    public sprite: Sprite;
+    public nametag: Text;
+
+    constructor(sprite: Sprite, nametag: Text) {
+        super();
+        this.updateBuffer = new Array<PlayerUpdate>();
+
+        this.sprite = sprite;
+        this.sprite.anchor.set(0.5, 0.5);
+        this.addChild(sprite);
+
+        this.nametag = nametag;
+        this.nametag.anchor.set(0.5, 0.5);
+        this.addChild(nametag);
     }
 
-    public shoot(): void {
-        let projectile = new Projectile(this.app, this.sprite.position, this.sprite.rotation);
+    public update(update: PlayerUpdate) {
+        if (this.updateBuffer.length >= 2) this.updateBuffer.shift();
+        this.updateBuffer.push(update);
     }
 
-    public followMouse() {
-        this.app.renderer.plugins.interaction.on('pointermove', (event) => {
-            let pointerLocation = event.data.getLocalPosition(this.app.stage);
-            this.sprite.rotation = Math.atan2(pointerLocation.y - this.sprite.y, pointerLocation.x - this.sprite.x);
-        });
-    }
+    public interpolate(t: number) {
+        if (this.updateBuffer.length < 2) return;
+        this.position.set(
+            lerp(this.updateBuffer[0].x, this.updateBuffer[1].x, t),
+            lerp(this.updateBuffer[0].y, this.updateBuffer[1].y, t)
+        );
+        this.sprite.rotation = lerpRadians(
+            this.updateBuffer[0].rotation, this.updateBuffer[1].rotation, t
+        );
 
-    public startMoving() {
-        this.app.ticker.add(this.moveForward);
-    }
-
-    public stopMoving() {
-        this.app.ticker.remove(this.moveForward);
-    }
-
-    private moveForward = (delta: number) => {
-        this.sprite.x = this.sprite.x + this.movementSpeed * Math.cos(this.sprite.rotation) * delta;
-        this.sprite.y = this.sprite.y + this.movementSpeed * Math.sin(this.sprite.rotation) * delta;
+        function lerp(a: number, b: number, t: number): number {
+            return (1 - t) * a + t * b;
+        }
+        function lerpRadians(a: number, b: number, t: number): number {
+            let result: number;
+            let diff = b - a;
+            if (diff < -Math.PI) {
+                b += Math.PI * 2;
+                result = lerp(a, b, t);
+                if (result >= Math.PI * 2) result -= Math.PI * 2;
+            }
+            else if (diff > Math.PI) {
+                b -= Math.PI * 2;
+                result = lerp(a, b, t);
+                if (result < 0) result += Math.PI * 2;
+            }
+            else {
+                result = lerp(a, b, t);
+            }
+            return result;
+        }
     }
 }
