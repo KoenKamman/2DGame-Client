@@ -4,6 +4,7 @@ import { PlayerUpdate } from '../models/PlayerUpdate';
 export class PlayerManager {
     private stage: PIXI.Container;
 
+    public possessedPlayer: Player;
     public players: Map<number, Player>;
 
     constructor(stage: PIXI.Container) {
@@ -13,12 +14,23 @@ export class PlayerManager {
 
     public spawnPlayer(update: PlayerUpdate) {
         let player = new Player(
-            new PIXI.Sprite(PIXI.Loader.shared.resources["assets/player.png"].texture),
+            new PIXI.Sprite(PIXI.Loader.shared.resources["assets/enemyPlayer.png"].texture),
             new PIXI.Text("PLAYER" + update.id)
         );
         player.update(update);
         this.players.set(update.id, player);
         this.stage.addChild(player);
+    }
+
+    public spawnPossessedPlayer(update: PlayerUpdate) {
+        let player = new Player(
+            new PIXI.Sprite(PIXI.Loader.shared.resources["assets/player.png"].texture),
+            new PIXI.Text("PLAYER" + update.id)
+        );
+        player.update(update);
+        this.stage.addChild(player);
+        this.possessedPlayer = player;
+        this.players.set(update.id, player);
     }
 
     public removePlayer(update: PlayerUpdate) {

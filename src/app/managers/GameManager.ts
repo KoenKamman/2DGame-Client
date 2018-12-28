@@ -24,7 +24,7 @@ export class GameManager {
         serverInfo.players.forEach(player => {
             this.playerManager.spawnPlayer(player);
         });
-        this.playerManager.spawnPlayer(serverInfo.player);
+        this.playerManager.spawnPossessedPlayer(serverInfo.player);
     }
 
     public update(snapshot: Snapshot) {
