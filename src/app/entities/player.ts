@@ -17,6 +17,7 @@ export class Player extends Container {
 
         this.nametag = nametag;
         this.nametag.anchor.set(0.5, 0.5);
+        this.nametag.position.set(0, 50);
         this.addChild(nametag);
     }
 
